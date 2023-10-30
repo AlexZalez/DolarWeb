@@ -1,6 +1,6 @@
 <script setup>
     import axios from 'axios';
-    import {ref, onMounted, computed} from 'vue';
+    import {ref, onMounted, computed, nextTick} from 'vue';
 
     const precio = ref('');
     const isLoading = ref(true)
@@ -9,18 +9,42 @@
     }
     
     const dolarON = ref(false);
-    const dolarIN = ref(null);
+    const dolarEL = ref(null);
+    const dolarOUT = computed(()=>{
+        let dlr = dolarIN.value;
+        const Vals = {
+            '0': '0.00',
+            '1': '0.0'+dlr,
+            '2': '0.'+dlr,            
+        }
+
+        let rewrite = 'ERROR';
+        if(dlr.length > 2) {
+            console.log("length "+dlr.length - 2);
+            if (dlr.length > 2 ) {
+                let last2 = dlr.substring(dlr.length - 2, dlr.length);
+                let all = dlr.substring(0, dlr.length - 2);
+                rewrite = `${all}.${last2}`;
+            }
+        }
+        let DEFAULT_VALS = rewrite;
+        console.log(DEFAULT_VALS);
+        
+        let final = Vals[dlr.length] || DEFAULT_VALS;
+        return final; 
+
+    });
+    const dolarIN = ref('0.00');
 
     const bolivarON = ref(false);
     const bolivarVAL = computed(()=>{
-        let newVal = precio.value * dolarIN.value;
+        let newVal = precio.value * Number(dolarIN.value);
         return `${newVal.toFixed(2)} Bs`;
     })
 
     function valor() {
-        axios.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar/bcv')
+        axios.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar/page?page=bcv')
         .then(res =>{
-            console.log(res.data.monitors.usd.price);
             precio.value = res.data.monitors.usd.price;
         })
         .catch(error => {
@@ -31,9 +55,70 @@
         });
         return
     }
+
     onMounted(()=>{
         valor();
     })
+
+
+    const Agregar = (e) => {
+        e.preventDefault()
+        
+        if (e.keyCode == 8) {
+            
+            let inCrud = dolarIN.value.replace('.','');
+            let finish;
+
+            if (inCrud.length <= 3) {
+                let inProces = inCrud.substring(0,inCrud.length-1);
+                finish = 0+'.'+inProces.substring(inCrud.length-3,inCrud.length-1);
+            }
+
+            if (inCrud.length > 3) {
+                let inProces = inCrud.substring(0,inCrud.length-1);
+                finish = inProces.substring(0,inCrud.length-3)+'.'+inProces.substring(inCrud.length-3,inCrud.length-1);
+            }
+            dolarIN.value = finish;
+            return;
+        }
+        
+        if(!isNaN(e.key)){
+            
+            if (dolarIN.value == '0.00') {
+                dolarIN.value = '0.0'+e.key;
+                return;
+            }
+
+            if (dolarIN.value.match(/(0\.0)+([1-9])/)) {
+                let dlrStart = dolarIN.value.match(/(0\.0)+([1-9])/)[2];
+                let dlrEnd = '0.'+dlrStart+e.key;
+                dolarIN.value = dlrEnd;
+                console.log('1');
+                return;
+            }
+
+            if (dolarIN.value.match(/^(0\.)+([1-9])+([0-9])/)) {
+                let notDot = dolarIN.value.replace('.','');
+                let inProces = notDot.substring(1,notDot.length)+e.key;
+                let finish = inProces.substring(0,inProces.length-2)+'.'+inProces.substring(inProces.length-2, inProces.length);
+                dolarIN.value = finish;
+                return;
+            }
+
+            let notDot = dolarIN.value.replace('.','');
+            let inProces = notDot+e.key;
+            let finish = inProces.substring(0,inProces.length-2)+'.'+inProces.substring(inProces.length-2, inProces.length);
+            dolarIN.value = finish;
+            return;
+        }
+        
+    }
+
+    async function activateD (){
+        dolarON.value = !dolarON.value;
+        await nextTick();
+        dolarEL.value.focus();
+    }
 </script>
 
 <template>
@@ -43,22 +128,26 @@
                 CARGANDO
             </div>
         </div>
-        <div v-else class="flex flex-col bg-green-800 rounded-3xl px-6 py-3 text-white">
+        <div v-else class="flex flex-col bg-green-800 rounded-3xl px-6 py-3 max-w-[14em] text-white">
             <div class=" font-bold text-center">Dolar BCV</div>
             <div class="flex">
                 <div class="group">
-                    <div @click="dolarON = !dolarON" v-if="!dolarON" class="flex">
-                        <div class="group-hover:bg-white/50 px-1 py-0.5 rounded-lg cursor-pointer">1$</div>
+                    
+                    <!-- BOTON PARA CAMBIAR DOLAR -->
+                    <div @click="activateD" v-if="!dolarON" class="flex">
+                        <div class="group-hover:bg-white/50 px-1 py-0.5 rounded-lg cursor-pointer">1.00$</div>
                         <div class="mr-1">=</div>
                     </div>
                     
+                    <!-- Input para Dolar -->
                     <div v-else class="flex">
                         <div class="flex">
-                            <input type="text" v-model="dolarIN" class="myIN">
+                            <input ref="dolarEL" v-model="dolarIN" type="text" @keydown="Agregar" class="myIN">
                             <div>$</div>
                         </div>
                         <div class="mx-1">=</div>
                     </div>
+
                 </div>
                 <div class="">
                     <div @click="bolivarON = !bolivarON" v-if="dolarON">{{ bolivarVAL }}</div>
@@ -73,7 +162,7 @@
 <style>
 
     .myIN{
-        @apply bg-transparent outline-none w-6
+        @apply outline-none max-w-[4em] bg-green-700 rounded-lg text-end px-1 py-0.5
     }
 
 </style>
