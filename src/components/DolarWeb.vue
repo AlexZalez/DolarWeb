@@ -1,6 +1,8 @@
 <script setup>
     import axios from 'axios';
-    import {ref, onMounted, computed, nextTick} from 'vue';
+    import {ref, onMounted, computed, nextTick, watch} from 'vue';
+
+    
 
     const precio = ref('');
     const isLoading = ref(true)
@@ -10,31 +12,13 @@
     
     const dolarON = ref(false);
     const dolarEL = ref(null);
-    const dolarOUT = computed(()=>{
-        let dlr = dolarIN.value;
-        const Vals = {
-            '0': '0.00',
-            '1': '0.0'+dlr,
-            '2': '0.'+dlr,            
-        }
-
-        let rewrite = 'ERROR';
-        if(dlr.length > 2) {
-            console.log("length "+dlr.length - 2);
-            if (dlr.length > 2 ) {
-                let last2 = dlr.substring(dlr.length - 2, dlr.length);
-                let all = dlr.substring(0, dlr.length - 2);
-                rewrite = `${all}.${last2}`;
-            }
-        }
-        let DEFAULT_VALS = rewrite;
-        console.log(DEFAULT_VALS);
-        
-        let final = Vals[dlr.length] || DEFAULT_VALS;
-        return final; 
-
-    });
     const dolarIN = ref('0.00');
+    watch(dolarIN, (newX, oldX)=>{
+        if (newX.match(/[^0-9.]/)) {
+            let procesed = newX.replace(/[^0-9.]/, '');
+            dolarIN.value = procesed;
+        }
+    })
 
     const bolivarON = ref(false);
     const bolivarVAL = computed(()=>{
@@ -83,13 +67,13 @@
         }
         
         if(!isNaN(e.key)){
-            
+                        
             if (dolarIN.value == '0.00') {
                 dolarIN.value = '0.0'+e.key;
                 return;
             }
 
-            if (dolarIN.value.match(/(0\.0)+([1-9])/)) {
+            if (dolarIN.value.match(/^(0\.0)+([1-9])/)) {
                 let dlrStart = dolarIN.value.match(/(0\.0)+([1-9])/)[2];
                 let dlrEnd = '0.'+dlrStart+e.key;
                 dolarIN.value = dlrEnd;
