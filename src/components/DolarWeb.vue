@@ -1,6 +1,6 @@
 <script setup>
     import axios from 'axios';
-    import {ref, onMounted, computed, nextTick, watch} from 'vue';
+    import {ref, onMounted, onUnmounted, computed, nextTick, watch} from 'vue';
 
     
 
@@ -98,10 +98,17 @@
         
     }
 
+    onUnmounted(() => document.removeEventListener('keydown', pressKey));
+
+    function pressKey(e) {
+        console.log(e);
+    }
+
     async function activateD (){
+        document.addEventListener('keydown', Agregar);
         dolarON.value = !dolarON.value;
-        await nextTick();
-        dolarEL.value.focus();
+        // await nextTick();
+        // dolarEL.value.focus();
     }
 </script>
 
@@ -112,7 +119,7 @@
                 CARGANDO
             </div>
         </div>
-        <div v-else class="flex flex-col bg-green-800 rounded-3xl px-6 py-3 max-w-[14em] text-white">
+        <div v-else class="flex flex-col bg-green-800 rounded-3xl px-6 py-3 max-w-[18em] text-white">
             <div class=" font-bold text-center">Dolar BCV</div>
             <div class="flex">
                 <div class="group">
@@ -126,16 +133,18 @@
                     <!-- Input para Dolar -->
                     <div v-else class="flex">
                         <div class="flex">
-                            <input ref="dolarEL" v-model="dolarIN" type="text" @keydown="Agregar" class="myIN">
+                            <input ref="dolarEL" disabled v-model="dolarIN"  type="text" @keydown="Agregar" class="myIN">
                             <div>$</div>
                         </div>
                         <div class="mx-1">=</div>
                     </div>
 
                 </div>
-                <div class="">
-                    <div @click="bolivarON = !bolivarON" v-if="dolarON">{{ bolivarVAL }}</div>
-                    <div v-else>{{ `${precio} Bs` }}</div>
+                <div class="flex" v-if="dolarON" >
+                    <div @click="bolivarON = !bolivarON" >{{ bolivarVAL }}</div>
+                </div>
+                <div class="flex flex-nowrap" v-else>
+                    <div class="w-fit" >{{ `${precio} Bs` }}</div>
                 </div>
             </div>
 
