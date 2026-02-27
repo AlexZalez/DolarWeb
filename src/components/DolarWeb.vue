@@ -114,7 +114,7 @@ const setState = (input, schema) =>{
         </div>
         
     </div>
-    <h1>guirju</h1>
+    <h1>guirju 2</h1>
 </template>
 
 <style scoped>
